@@ -50,3 +50,15 @@ impl Display for ParseError {
 
 /// エラー用に、Errorトレイトを実装
 impl Error for ParseError {}
+
+/// 特殊文字のエスケープ
+fn parse_escape(pos: usize, c: char) -> Result<AST, ParseError> {
+    match c {
+        '\\' | '(' | ')' | '+' | '*' | '?' => Ok(Ast::Char(c)),
+        _ => {
+            let err = ParseError::InvalidEscape(pos, c);
+            Err(err)
+        }
+    }
+}
+
