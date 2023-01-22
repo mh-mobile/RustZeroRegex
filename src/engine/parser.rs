@@ -89,3 +89,19 @@ fn parse_plus_star_question(
         Err(ParseError::NoPrev(pos))
     }
 }
+
+/// orで結合された複数の式をASTに変換
+fn fold_on(mut seq_or: Vec<AST>) -> Option<AST> {
+    if seq_or.len() > 1 {
+        // seq_orの要素が複数ある場合は、Orで式を結合
+        let mut ast = seq_or.pop().unwrap();
+        seq_or.reverse();
+        for s in seq_or {
+            ast = AST::Or(Box::new(s), Box::new(ast))
+        }
+        Some(ast)
+    } else {
+        // seq_orの要素が一つの場合は、Orではなく、最初の値を返す
+        seq_or.pop()
+    }
+}
