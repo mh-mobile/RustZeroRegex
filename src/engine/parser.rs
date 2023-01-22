@@ -47,3 +47,6 @@ impl Display for ParseError {
         }
     }
 }
+
+/// エラー用に、Errorトレイトを実装
+impl Error for ParseError {}
