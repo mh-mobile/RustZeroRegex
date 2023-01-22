@@ -62,3 +62,9 @@ fn parse_escape(pos: usize, c: char) -> Result<AST, ParseError> {
     }
 }
 
+/// parse_plus_star_question関数で利用するための列挙型
+enum PSQ {
+    Plus,
+    Star,
+    Question
+}
