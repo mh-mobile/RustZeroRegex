@@ -105,3 +105,94 @@ fn fold_on(mut seq_or: Vec<AST>) -> Option<AST> {
         seq_or.pop()
     }
 }
+
+/// 正規表現を抽象構文木に変換
+pub fn parse(expr: &str) -> Result<AST, ParseError> {
+
+    // 内部状態を表現するための型
+    // Char状態: 文字列処理中
+    // Escape状態: エスケープシーケンス処理中
+    enum ParseState {
+        Char,
+        Escape,
+    }
+
+    let mut seq = Vec::new(); // 現在のSeqのコンテキスト
+    let mut seq_or = Vec::new(); // 現在のOrのコンテキスト
+    let mut stack = Vec::new(); // コンテキストのスタック
+    let mut state = ParseState::Char; // 現在の状態
+
+    for (i, c) in expr.chars().enumerate() {
+        match &state {
+            ParseState::Char => {
+                match c {
+                    '+' => parse_plus_star_question(&mut seq, PSQ::Plus, i)?,
+                    '*' => parse_plus_star_question(&mut seq, PSQ::Star, i)?,
+                    '?' => parse_plus_star_question(&mut seq, PST::Question, i)?,
+                    '(' => {
+                        // 現在のコンテキストをスタックに追加し、
+                        // 現在のコンテキストを空の状態にする。
+                        let prev = take(&mut seq);
+                        let prev_or = take(&mut seq_or);
+                        stack.push((prev, prev_or));
+                    }
+                    ')' => {
+                        // 現在のコンテキストをスタックからポップ
+                        if let Some((mut prev, prev_or)) = stack.pop() {
+                            // "()"のように式が空の場合はpushしない
+                            if !seq.is_empty() {
+                                seq_or.push(AST::Seq(seq));
+                            }
+
+                            // Orを生成
+                            if let Some(ast) = fold_or(seq_or) {
+                                prev.push(ast)
+                            }
+
+                            // 以前のコンテキストを、現在のコンテキストにする
+                            seq = prev;
+                            seq_or = prev_or;
+                        } else {
+                            // "abc)" のように、開き括弧がないのに閉じ括弧がある場合はエラー
+                            return Err(ParseError::InvalidRightParen(i));
+                        }
+                    }
+                    '|' => {
+                        if seq.is_empty() {
+                            // "||", "(|abc)"などと、式が空の場合はエラー
+                            return Err(ParseError::NoPrev(i));
+                        } else {
+                            let prev = take(&mut seq);
+                            seq_or.push(AST::Seq(prev));
+                        }
+                    }
+                    '\\' => state = ParseState::Escape,
+                    _ => seq.push(AST::Char(c)),
+                };
+            }
+            ParseState::Escape => {
+                // エスケープシーケンス処理
+                let ast = parse_escape(i, c);
+                seq.push(ast);
+                state = ParseState::Char;
+            }
+        }
+    }
+
+    // 閉じ括弧が足りない場合はエラー
+    if !stack.is_empty() {
+        return Err(ParseError::NoRightParen);
+    }
+
+    // "()"のように式が空の場合はpushしない
+    if !seq.is_empty() {
+        seq_or.push(AST::Seq(seq));
+    }
+
+    // Orを生成し、成功した場合はそれを返す
+    if let Some(ast) = fold_or(seq_or) {
+        Ok(ast)
+    } else {
+        Err(ParseError::Empty)
+    }
+}
