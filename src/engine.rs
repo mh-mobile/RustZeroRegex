@@ -1,4 +1,3 @@
-
 /// 命令列
 #[derive(Debug)]
 pub enum Instruction {

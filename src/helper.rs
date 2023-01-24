@@ -8,7 +8,7 @@ impl SafeAdd for usize {
     }
 }
 
-pub fn safe_add<T, F, E>(dst: &mut T, src: &T, f: F) -> Result<(), E> 
+pub fn safe_add<T, F, E>(dst: &mut T, src: &T, f: F) -> Result<(), E>
 where
     T: SafeAdd,
     F: Fn() -> E,
