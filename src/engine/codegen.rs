@@ -66,7 +66,7 @@ impl Generator {
                             self.gen_star(e1)?
                         }
                     }
-                    e => self.gen_star(&e)?,
+                    e => self.gen_star(e)?,
                 }
             }
             AST::Question(e) => self.gen_question(e)?,
