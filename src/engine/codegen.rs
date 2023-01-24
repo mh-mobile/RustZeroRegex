@@ -1,6 +1,6 @@
 //! ASTからコード生成を行う
 use super::{parser::AST, Instruction};
-use create::helper::safe_add;
+use crate::helper::safe_add;
 use std::{
     error::Error,
     fmt::{self, Display},
@@ -24,7 +24,7 @@ impl Display for CodeGenError {
 impl Error for CodeGenError {}
 
 /// コード生成器
-#[derive(Defualt, Debug)]
+#[derive(Default, Debug)]
 struct Generator {
     pc: usize,
     insts: Vec<Instruction>,
@@ -69,7 +69,7 @@ impl Generator {
                     e => self.gen_star(&e)?,
                 }
             }
-            AST::Quetion(e) => self.gen_question(e)?,
+            AST::Question(e) => self.gen_question(e)?,
             AST::Seq(v) => self.gen_seq(v)?,
         }
 
@@ -99,7 +99,7 @@ impl Generator {
         // split L1, L2
         let split_addr = self.pc;
         self.inc_pc()?;
-        let split = Instruction::Split(slef.pc, 0); // L1 = self.pc。L2は仮に0と設定
+        let split = Instruction::Split(self.pc, 0); // L1 = self.pc。L2は仮に0と設定
         self.insts.push(split);
 
         // L1: e1のコード
@@ -121,7 +121,7 @@ impl Generator {
         self.gen_expr(e2)?;
 
         // L3の値を設定
-        if let Some(Instruction::Jump(l3)) = self.insts.get_mut(jump_addr) {
+        if let Some(Instruction::Jump(l3)) = self.insts.get_mut(jmp_addr) {
             *l3 = self.pc;
         } else {
             return Err(CodeGenError::FailOr);
@@ -147,11 +147,12 @@ impl Generator {
         self.insts.push(split);
 
         // L1: eのコード
-        self.gen_expr()?;
+        self.gen_expr(e)?;
 
         // L2の値を設定
         if let Some(Instruction::Split(_, l2)) = self.insts.get_mut(split_addr) {
             *l2 = self.pc;
+            Ok(())
         } else {
             Err(CodeGenError::FailQuestion)
         }
@@ -169,7 +170,7 @@ impl Generator {
     /// ```
     fn gen_star(&mut self, e: &AST) -> Result<(), CodeGenError> {
         // L1: split L2, L3
-        let l1 = slef.pc;
+        let l1 = self.pc;
         self.inc_pc()?;
         let split = Instruction::Split(self.pc, 0); // self.pcがL2。L3を仮に0と設定
         self.insts.push(split);

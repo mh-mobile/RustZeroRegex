@@ -6,6 +6,7 @@ use std::{
 };
 
 /// 抽象構文木を表現するための型
+#[derive(Debug)]
 pub enum AST {
     Char(char),
     Plus(Box<AST>),
@@ -54,7 +55,7 @@ impl Error for ParseError {}
 /// 特殊文字のエスケープ
 fn parse_escape(pos: usize, c: char) -> Result<AST, ParseError> {
     match c {
-        '\\' | '(' | ')' | '+' | '*' | '?' => Ok(Ast::Char(c)),
+        '\\' | '(' | ')' | '+' | '*' | '?' => Ok(AST::Char(c)),
         _ => {
             let err = ParseError::InvalidEscape(pos, c);
             Err(err)
@@ -108,22 +109,6 @@ fn parse_plus_star_question(
     }
 }
 
-/// orで結合された複数の式をASTに変換
-fn fold_on(mut seq_or: Vec<AST>) -> Option<AST> {
-    if seq_or.len() > 1 {
-        // seq_orの要素が複数ある場合は、Orで式を結合
-        let mut ast = seq_or.pop().unwrap();
-        seq_or.reverse();
-        for s in seq_or {
-            ast = AST::Or(Box::new(s), Box::new(ast))
-        }
-        Some(ast)
-    } else {
-        // seq_orの要素が一つの場合は、Orではなく、最初の値を返す
-        seq_or.pop()
-    }
-}
-
 /// 正規表現を抽象構文木に変換
 pub fn parse(expr: &str) -> Result<AST, ParseError> {
     // 内部状態を表現するための型
@@ -145,7 +130,7 @@ pub fn parse(expr: &str) -> Result<AST, ParseError> {
                 match c {
                     '+' => parse_plus_star_question(&mut seq, PSQ::Plus, i)?,
                     '*' => parse_plus_star_question(&mut seq, PSQ::Star, i)?,
-                    '?' => parse_plus_star_question(&mut seq, PST::Question, i)?,
+                    '?' => parse_plus_star_question(&mut seq, PSQ::Question, i)?,
                     '(' => {
                         // 現在のコンテキストをスタックに追加し、
                         // 現在のコンテキストを空の状態にする。
@@ -189,7 +174,7 @@ pub fn parse(expr: &str) -> Result<AST, ParseError> {
             }
             ParseState::Escape => {
                 // エスケープシーケンス処理
-                let ast = parse_escape(i, c);
+                let ast = parse_escape(i, c)?;
                 seq.push(ast);
                 state = ParseState::Char;
             }
