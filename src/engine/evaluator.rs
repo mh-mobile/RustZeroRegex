@@ -20,4 +20,3 @@ impl Display for EvalError {
         write!(f, "CodeGenError: {:?}", self)
     }
 }
-

@@ -59,13 +59,14 @@ impl Generator {
                     // 問題を回避するために、このような`(((r*)*)*...*)*`を再起的に処理して
                     // 1つの`r*`へと変換する。
                     AST::Star(e2) => self.gen_expr(&e2)?,
-                    AST::Seq(e2) if e2.len() == 1 =>
+                    AST::Seq(e2) if e2.len() == 1 => {
                         if let Some(e3 @ AST::Star(_)) = e2.get(0) {
                             self.gen_expr(e3)?
                         } else {
                             self.gen_star(e1)?
                         }
-                    e => self.gen_star(&e)?
+                    }
+                    e => self.gen_star(&e)?,
                 }
             }
             AST::Quetion(e) => self.gen_question(e)?,
@@ -84,15 +85,15 @@ impl Generator {
     }
 
     /// OR演算子のコード生成器
-    /// 
+    ///
     /// 以下のようなコードを生成
-    /// 
+    ///
     /// ```text
     ///     split L1, L2
     /// L1: e1のコード
     ///     jump L3
     /// L2: e2のコード
-    /// L3: 
+    /// L3:
     /// ```
     fn gen_or(&mut self, e1: &AST, e2: &AST) -> Result<(), CodeGenError> {
         // split L1, L2
@@ -130,9 +131,9 @@ impl Generator {
     }
 
     /// ?限量子のコード生成器
-    /// 
+    ///
     /// 以下のようなコードを生成
-    /// 
+    ///
     /// ```text
     ///     split L1, L2
     /// L1: eのコード
@@ -157,9 +158,9 @@ impl Generator {
     }
 
     /// *限量子のコード生成木。
-    /// 
+    ///
     /// 以下のようなコードを生成
-    /// 
+    ///
     /// ```text
     /// L1: split L2, L3
     /// L2: eのコード
@@ -190,7 +191,7 @@ impl Generator {
     }
 
     /// 以下のようなコードを生成
-    /// 
+    ///
     /// ```text
     /// L1: e1のコード
     ///     split L1, L2

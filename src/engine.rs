@@ -1,3 +1,10 @@
+mod codegen;
+mod evaluator;
+mod parser;
+
+use crate::helper::DynError;
+use std::fmt::{self, Display};
+
 /// 命令列
 #[derive(Debug)]
 pub enum Instruction {

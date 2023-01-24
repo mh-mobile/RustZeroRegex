@@ -2,17 +2,17 @@
 use std::{
     error::Error,
     fmt::{self, Display},
-    mem::take
+    mem::take,
 };
 
-//! 抽象構文木を表現するための型
+/// 抽象構文木を表現するための型
 pub enum AST {
     Char(char),
     Plus(Box<AST>),
     Star(Box<AST>),
     Question(Box<AST>),
     Or(Box<AST>, Box<AST>),
-    Seq(Vec<AST>)
+    Seq(Vec<AST>),
 }
 
 /// パースエラーを表すための型
@@ -62,20 +62,38 @@ fn parse_escape(pos: usize, c: char) -> Result<AST, ParseError> {
     }
 }
 
+/// orで結合された複数の式をASTに変換
+///
+/// 例えば、abc|def|ghiは、AST::OR("abc", AST::OR("def", "ghi"))というASTとなる
+fn fold_or(mut seq_or: Vec<AST>) -> Option<AST> {
+    if seq_or.len() > 1 {
+        // seq_orの要素が複数ある場合はorで式を結合
+        let mut ast = seq_or.pop().unwrap();
+        seq_or.reverse();
+        for s in seq_or {
+            ast = AST::Or(Box::new(s), Box::new(ast));
+        }
+        Some(ast)
+    } else {
+        // seq_orの要素が一つのみの場合は、Orではなく、最初の値を返す
+        seq_or.pop()
+    }
+}
+
 /// parse_plus_star_question関数で利用するための列挙型
 enum PSQ {
     Plus,
     Star,
-    Question
+    Question,
 }
 
 /// +, *, ? をASTに変換
-/// 
+///
 /// 後置記法で、+、*、?の前にパターンがない場合はエラー
 fn parse_plus_star_question(
     seq: &mut Vec<AST>,
     ast_type: PSQ,
-    pos: size,
+    pos: usize,
 ) -> Result<(), ParseError> {
     if let Some(prev) = seq.pop() {
         let ast = match ast_type {
@@ -108,7 +126,6 @@ fn fold_on(mut seq_or: Vec<AST>) -> Option<AST> {
 
 /// 正規表現を抽象構文木に変換
 pub fn parse(expr: &str) -> Result<AST, ParseError> {
-
     // 内部状態を表現するための型
     // Char状態: 文字列処理中
     // Escape状態: エスケープシーケンス処理中
@@ -196,4 +213,3 @@ pub fn parse(expr: &str) -> Result<AST, ParseError> {
         Err(ParseError::Empty)
     }
 }
-
